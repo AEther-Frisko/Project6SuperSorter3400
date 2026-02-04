@@ -1,0 +1,73 @@
+:root {
+    --bg-colour: #ededed;
+    --header-colour: #787878;
+    --nav-colour: #383838;
+    --main-colour: #c4c4c4;
+}
+
+body {
+    background-color: var(--bg-colour);
+    margin: 0;
+    padding: 0;
+}
+
+header {
+    background-color: var(--header-colour);
+    text-align: center;
+    color: var(--bg-colour);
+    padding: 10px;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--nav-colour);
+}
+
+nav a {
+    display: block;
+    color: var(--bg-colour);
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+nav a:hover {
+    background-color: var(--main-colour);
+    color: black;
+}
+
+main {
+    margin: auto;
+    width: 50%;
+    background-color: var(--main-colour);
+    padding: 25px;
+}
+
+footer {
+    background-color: var(--header-colour);
+    text-align: center;
+    color: var(--bg-colour);
+    padding: 8px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    background-color: var(--header-colour);
+    padding: 10px;
+    width: 50%;
+    margin: auto;
+}
+
+.grid div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--bg-colour);
+    border: 3px solid var(--header-colour);
+    padding: 10px;
+    font-size: 30px;
+    text-align: center;
+    aspect-ratio: 1;
+}

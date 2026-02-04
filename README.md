@@ -23,6 +23,4 @@ This should be located within the build folder. In my case, it created a Visual 
 
 5. Open your browser at `http://localhost:18080`
 
-If all is working correctly, you should see a plain "Hello world" message in the browser tab.
-
-6. Navigate to `http://localhost:18080/<your name>` to see the other test route :)
+If all is working correctly, you should see the home page in your browser.
