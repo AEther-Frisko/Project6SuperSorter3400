@@ -1,0 +1,25 @@
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.ncb
+*.obj
+*.pdb
+*.idb
+*.ipch
+*.ilk
+*.log
+
+# CMake build folder
+/build/
+/CMakeFiles/
+/CMakeChache.txt
+cmake_install.cmake
+Makefile
+
+# Executables
+*.exe
+*.out
+*.app
