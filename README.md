@@ -12,6 +12,7 @@ cmake ..
 cmake --build .
 ```
 If you want to rebuild the webserver after making changes, delete the build folder first. This can be done using `rm -r build`, or manually through your file explorer.
+
 4. Run the created `server.exe` file from your project's root directory, for example:
 ```
 ./build/Debug/server.exe
@@ -19,6 +20,7 @@ If you want to rebuild the webserver after making changes, delete the build fold
 This should be located within the build folder. In my case, it created a Visual Studio solution, so the .exe was located in the Debug directory of the build folder.
 
 **If you don't run the .exe from the project root, it can't locate files!**
+
 5. Open your browser at `http://localhost:1800`
 
 If all is working correctly, you should see a plain "Hello world" message in the browser tab.
