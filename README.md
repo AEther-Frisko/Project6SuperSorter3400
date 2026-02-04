@@ -11,7 +11,7 @@ cd build
 cmake ..
 cmake --build .
 ```
-If you want to rebuild the webserver after making changes, delete the build folder first. This can be done using `rm -r build`, or manually through your file explorer.
+If you want to rebuild the webserver after making changes, it's best to delete the build folder first (ensures a clean build). This can be done using `rm -r build`, or manually through your file explorer.
 
 4. Run the created `server.exe` file from your project's root directory, for example:
 ```
@@ -21,6 +21,8 @@ This should be located within the build folder. In my case, it created a Visual 
 
 **If you don't run the .exe from the project root, it can't locate files!**
 
-5. Open your browser at `http://localhost:1800`
+5. Open your browser at `http://localhost:18080`
 
 If all is working correctly, you should see a plain "Hello world" message in the browser tab.
+
+6. Navigate to `http://localhost:18080/<your name>` to see the other test route :)
