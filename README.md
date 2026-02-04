@@ -3,7 +3,7 @@ CROW-based webserver that runs a simple puzzle game. This will run in a Docker c
 
 ## How to Build Locally
 1. Clone the repo
-2. Install CMake if you do not already have it
+2. Install [CMake](https://cmake.org/download/) if you do not already have it
 3. Create a build folder in the repo:
 ```bash
 mkdir build
