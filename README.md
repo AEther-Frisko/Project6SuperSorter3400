@@ -24,3 +24,13 @@ This should be located within the build folder. In my case, it created a Visual 
 5. Open your browser at `http://localhost:18080`
 
 If all is working correctly, you should see the home page in your browser.
+
+## Connecting to the Database
+You might have noticed the `db.conf.example` file. This shows how your actual `db.conf` file should be set up. Any of the text in all caps should be replaced with the relevant data for your config file. For example:
+```
+Database=DATABASE_NAME
+becomes...
+Database=databaseproject6final
+```
+
+This is mainly to keep database information (particularly the password!) secret. Once this file is set up properly, the program should parse it and be able to connect.

@@ -9,3 +9,5 @@ target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/third_party/asio/include
 )
+
+target_link_libraries(server PRIVATE odbc32)

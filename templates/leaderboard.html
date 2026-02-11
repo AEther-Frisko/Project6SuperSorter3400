@@ -1,10 +1,19 @@
-<h2>Leaderboard</h2>
-<p>
-    A leaderboard will be here later lol, this is a major work in progress
-</p>
-<p>
-    Average Moves: X
-</p>
-<p>
-    Average Time: X
-</p>
+<h2 style="text-align: center;">Leaderboard</h2>
+
+<p style="text-align: center;">Average Moves: <span id="avgMoves">0</span> | Average Time (s): <span id="avgTime">0</span></p>
+
+<table id="leaderboard">
+    <thead>
+        <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Moves</th>
+            <th>Time (s)</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!-- dynamically populated by script -->
+    </tbody>
+</table>
+
+<script src="../static/js/leaderboard.js"></script>
