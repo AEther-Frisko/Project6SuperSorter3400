@@ -13,6 +13,7 @@ void displayBoard(const vector<int>& board) {
         }
         cout << "| ";
         if (board[i] == 0) {
+            cout << " "; // Empty space
         }
         else {
             cout << board[i];

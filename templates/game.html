@@ -1,12 +1,102 @@
-<p>This is temporary placeholder content.</p>
-<div class="grid">
-    <div>1</div>
-    <div>2</div>
-    <div>3</div>
-    <div>4</div>
-    <div>5</div>
-    <div>6</div>
-    <div>7</div>
-    <div>8</div>
-    <div></div>
+<h2>Super Sorter 3400</h2>
+
+<p>
+  Moves: <span id="moves">0</span>
+  <span id="status" style="margin-left: 10px;"></span>
+</p>
+
+<div id="grid" class="grid"></div>
+
+<div style="margin-top: 12px;">
+  <button id="newGameBtn">New Game</button>
 </div>
+
+<script>
+  const gridEl = document.getElementById("grid");
+  const movesEl = document.getElementById("moves");
+  const statusEl = document.getElementById("status");
+  const newBtn = document.getElementById("newGameBtn");
+
+  // Server state (produced by C++ PuzzleLogic.h)
+  let state = { board: [], validMoves: [], moves: 0, solved: false };
+
+  function render() {
+    gridEl.innerHTML = "";
+    movesEl.textContent = state.moves ?? 0;
+    statusEl.textContent = state.solved ? "✅ Solved!" : "";
+
+    (state.board || []).forEach((val, idx) => {
+      const cell = document.createElement("button");
+      cell.className = "cell";
+
+      if (val === 0) {
+        cell.textContent = "";
+        cell.classList.add("empty");
+        cell.disabled = true;
+      } else {
+        cell.textContent = val;
+
+        // Only allow clicks on server-approved valid moves
+        const canMove = (state.validMoves || []).includes(idx);
+        cell.disabled = !canMove || state.solved;
+        if (canMove) cell.classList.add("movable");
+
+        cell.addEventListener("click", () => makeMove(idx));
+      }
+
+      gridEl.appendChild(cell);
+    });
+  }
+
+  async function newGame() {
+    statusEl.textContent = "Loading...";
+    const res = await fetch("/api/new");
+    if (!res.ok) {
+      statusEl.textContent = "Missing /api/new on server";
+      return;
+    }
+    state = await res.json();
+    render();
+  }
+
+  async function makeMove(pos) {
+    const res = await fetch("/api/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pos })
+    });
+
+    if (!res.ok) {
+      statusEl.textContent = "Missing /api/move on server";
+      return;
+    }
+
+    state = await res.json();
+    render();
+  }
+
+  newBtn.addEventListener("click", newGame);
+  newGame();
+</script>
+
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .cell {
+    height: 80px;
+    font-size: 24px;
+    border-radius: 10px;
+    border: 1px solid #999;
+  }
+  .cell.empty {
+    background: transparent;
+    border: 1px dashed #aaa;
+  }
+  .cell.movable {
+    cursor: pointer;
+  }
+</style>

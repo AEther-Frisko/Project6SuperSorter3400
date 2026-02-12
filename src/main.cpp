@@ -181,6 +181,9 @@ auto makePageRoute = [](const string& title, const string& file){
 
 int main(){
     crow::SimpleApp app;
+    // Game state (in-memory)
+    static std::vector<int> board;
+    static int moveCount = 0;
 
     // GET Home page
     CROW_ROUTE(app, "/")(makePageRoute("Home", "home.html"));
@@ -190,6 +193,48 @@ int main(){
 
     // GET Game page
     CROW_ROUTE(app, "/game")(makePageRoute("Play Game", "game.html"));
+
+    // NEW GAME
+    CROW_ROUTE(app, "/api/new")([](){
+        board = createShuffledBoard();
+        moveCount = 0;
+
+        crow::json::wvalue out;
+        out["board"] = board;
+        out["moves"] = moveCount;
+        out["solved"] = isSolved(board);
+        out["validMoves"] = getValidMoves(board);
+        return crow::response(200, out);
+    });
+
+    // MAKE MOVE
+    CROW_ROUTE(app, "/api/move").methods("POST"_method)
+    ([](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        if (!body || !body.has("pos")) {
+            return crow::response(400, "Missing pos");
+        }
+
+        int pos = body["pos"].i();
+
+        // If game wasn't started yet, start one
+        if (board.empty()) {
+            board = createShuffledBoard();
+            moveCount = 0;
+        }
+
+        bool moved = makeMove(board, pos);
+        if (moved) moveCount++;
+
+        crow::json::wvalue out;
+        out["moved"] = moved;
+        out["board"] = board;
+        out["moves"] = moveCount;
+        out["solved"] = isSolved(board);
+        out["validMoves"] = getValidMoves(board);
+        return crow::response(200, out);
+    });
+
 
     // GET Leaderboard entries from database
     CROW_ROUTE(app, "/api/leaderboard")([](){
@@ -223,4 +268,7 @@ int main(){
 
     app.port(PORT_NUMBER).multithreaded().run();
     return 0;
+
+
+    
 }
