@@ -1,14 +1,16 @@
 :root {
-    --bg-colour: #ededed;
-    --header-colour: #787878;
-    --nav-colour: #383838;
-    --main-colour: #c4c4c4;
+    --bg-colour: #cad2c5;
+    --main-colour: #84a98c;
+    --header-colour: #52796f;
+    --nav-colour: #354f52;
+    --text-colour: #1B2720;
 }
 
 body {
     background-color: var(--bg-colour);
     margin: 0;
     padding: 0;
+    color: var(--text-colour);
 }
 
 header {
@@ -34,7 +36,7 @@ nav a {
 
 nav a:hover {
     background-color: var(--main-colour);
-    color: black;
+    color: var(--text-colour);
 }
 
 main {
