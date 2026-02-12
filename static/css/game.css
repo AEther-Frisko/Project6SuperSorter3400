@@ -1,0 +1,86 @@
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 80px);
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .cell {
+    height: 80px;
+    font-size: 24px;
+    border-radius: 10px;
+    border: 1px solid #999;
+  }
+  .cell.empty {
+    background: transparent;
+    border: 1px dashed #aaa;
+  }
+  .cell.movable {
+    cursor: pointer;
+  }
+
+   .grid.solved .cell {
+    background: #35c759;   /* green */
+    color: white;
+    border-color: #2da84b;
+  }
+  .grid.solved .cell.empty {
+    background: transparent; /* keep empty dashed if you want */
+    border-style: dashed;
+  }
+
+  #newGameBtn{
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 10px;
+  border: 1px solid #777;
+  background: #f5f5f5;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+#newGameBtn:hover{
+  background: #eaeaea;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+#newGameBtn:active{
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+#newGameBtn:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(53, 199, 89, 0.35); /* subtle green ring */
+}
+
+/* Smooth animation for tiles */
+.cell{
+  transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+/* Hover only on clickable tiles */
+.cell.movable:hover{
+  background: #eaeaea;        
+  border-color: #6b8cff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+.cell{
+  height: 80px;
+  font-size: 24px;
+  border-radius: 10px;
+  border: 1px solid #999;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  transition: transform 0.18s cubic-bezier(.2,.8,.2,1);
+}
+
+
+/* when board updates */
+.cell.swap{
+  transform: scale(1.15);
+}

@@ -1,5 +1,4 @@
-<h2>Super Sorter 3400</h2>
-
+<head> <link rel="stylesheet" href="../static/css/game.css"></head>
 <p>
   Moves: <span id="moves">0</span>
   <span id="status" style="margin-left: 10px;"></span>
@@ -21,32 +20,56 @@
   let state = { board: [], validMoves: [], moves: 0, solved: false };
 
   function render() {
-    gridEl.innerHTML = "";
-    movesEl.textContent = state.moves ?? 0;
-    statusEl.textContent = state.solved ? "✅ Solved!" : "";
 
-    (state.board || []).forEach((val, idx) => {
-      const cell = document.createElement("button");
-      cell.className = "cell";
+  // save old positions BEFORE clearing grid
+  const oldPos = {};
+  document.querySelectorAll(".cell").forEach(c=>{
+    oldPos[c.textContent] = c.getBoundingClientRect();
+  });
 
-      if (val === 0) {
-        cell.textContent = "";
-        cell.classList.add("empty");
-        cell.disabled = true;
-      } else {
-        cell.textContent = val;
+  gridEl.innerHTML = "";
+  movesEl.textContent = state.moves ?? 0;
+  statusEl.textContent = state.solved ? "Solved!" : "";
 
-        // Only allow clicks on server-approved valid moves
-        const canMove = (state.validMoves || []).includes(idx);
-        cell.disabled = !canMove || state.solved;
-        if (canMove) cell.classList.add("movable");
+  (state.board || []).forEach((val, idx) => {
+    const cell = document.createElement("button");
+    cell.className = "cell";
 
-        cell.addEventListener("click", () => makeMove(idx));
-      }
-
+    if (val === 0) {
+      cell.classList.add("empty");
+      cell.disabled = true;
       gridEl.appendChild(cell);
-    });
-  }
+      return;
+    }
+
+    cell.textContent = val;
+
+    const canMove = (state.validMoves || []).includes(idx);
+    cell.disabled = !canMove || state.solved;
+    if (canMove) cell.classList.add("movable");
+
+    cell.addEventListener("click", () => makeMove(idx));
+    gridEl.appendChild(cell);
+
+    // animation magic
+    const newBox = cell.getBoundingClientRect();
+    const oldBox = oldPos[val];
+
+    if(oldBox){
+      const dx = oldBox.left - newBox.left;
+      const dy = oldBox.top - newBox.top;
+
+      cell.style.transform = `translate(${dx}px, ${dy}px)`;
+      cell.style.transition = "none";
+
+      requestAnimationFrame(()=>{
+        cell.style.transform = "";
+        cell.style.transition = "transform 0.50s cubic-bezier(.2,.8,.2,1)";
+      });
+    }
+  });
+}
+
 
   async function newGame() {
     statusEl.textContent = "Loading...";
@@ -79,24 +102,4 @@
   newGame();
 </script>
 
-<style>
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(3, 80px);
-    gap: 10px;
-    margin-top: 10px;
-  }
-  .cell {
-    height: 80px;
-    font-size: 24px;
-    border-radius: 10px;
-    border: 1px solid #999;
-  }
-  .cell.empty {
-    background: transparent;
-    border: 1px dashed #aaa;
-  }
-  .cell.movable {
-    cursor: pointer;
-  }
-</style>
+
