@@ -6,6 +6,7 @@
 #include <sstream>
 #include <fstream>
 #include <unordered_map>
+#include "Backend/PuzzleLogic.h"
 
 using namespace std;
 using namespace crow;

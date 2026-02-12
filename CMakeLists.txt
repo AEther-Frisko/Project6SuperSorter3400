@@ -11,3 +11,5 @@ target_include_directories(server PRIVATE
 )
 
 target_link_libraries(server PRIVATE odbc32)
+
+target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/src ...)
