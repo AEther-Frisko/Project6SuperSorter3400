@@ -4,6 +4,7 @@
     grid-template-columns: repeat(3, 80px);
     gap: 10px;
     margin-top: 10px;
+    width: 260px;
   }
   .cell {
     height: 80px;
