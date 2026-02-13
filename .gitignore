@@ -25,4 +25,4 @@ Makefile
 *.app
 
 # Has sensitive info!!
-db.conf
+#db.conf
