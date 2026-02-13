@@ -51,7 +51,7 @@ unordered_map<string, string> loadConfig(const string& path) {
     return cfg;
 }
 
-/* ✅ ADDED: helper to get readable ODBC error */
+/* helper to get readable ODBC error */
 static std::string odbc_error(SQLSMALLINT handleType, SQLHANDLE handle) {
     SQLCHAR state[6]{};
     SQLCHAR msg[1024]{};
@@ -345,7 +345,7 @@ int main(){
                 return crow::response(500, "STMT alloc failed: " + err);
             }
 
-            // Rank is NOT NULL in your table, so insert 0
+            
             std::string sql =
                 "INSERT INTO dbo.PlayerRanks (Rank, Name, NumOfMoves, Time) VALUES (0, N'" +
                 clean + "', " + std::to_string(moves) + ", '" + timeBuf + "')";
