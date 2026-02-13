@@ -51,6 +51,18 @@ unordered_map<string, string> loadConfig(const string& path) {
     return cfg;
 }
 
+/* ✅ ADDED: helper to get readable ODBC error */
+static std::string odbc_error(SQLSMALLINT handleType, SQLHANDLE handle) {
+    SQLCHAR state[6]{};
+    SQLCHAR msg[1024]{};
+    SQLINTEGER native{};
+    SQLSMALLINT len{};
+    if (SQLGetDiagRecA(handleType, handle, 1, state, &native, msg, sizeof(msg), &len) == SQL_SUCCESS) {
+        return std::string((char*)state) + ": " + (char*)msg;
+    }
+    return "Unknown ODBC error";
+}
+
 /*
     Retrieves database data
 */
@@ -266,9 +278,101 @@ int main(){
         }
     });
 
+    //Post game stats to the db
+    CROW_ROUTE(app, "/api/submit").methods("POST"_method)
+    ([](const crow::request& req){
+        try {
+            auto body = crow::json::load(req.body);
+            if (!body || !body.has("name") || !body.has("moves") || !body.has("timeSeconds"))
+                return crow::response(400, "Missing fields");
+
+            std::string name = body["name"].s();
+            int moves = body["moves"].i();
+            int timeSeconds = body["timeSeconds"].i();
+
+            // Force ABC format (prevents SQL injection too)
+            std::string clean;
+            for (char c : name) {
+                if (c >= 'a' && c <= 'z') c = char(c - 'a' + 'A');
+                if (c >= 'A' && c <= 'Z') clean.push_back(c);
+                if (clean.size() == 3) break;
+            }
+            if (clean.size() != 3) return crow::response(400, "Name must be 3 letters");
+
+            if (moves < 0) moves = 0;
+            if (timeSeconds < 0) timeSeconds = 0;
+
+            // Convert seconds to SQL TIME string "HH:MM:SS"
+            int hh = (timeSeconds / 3600) % 24;
+            int mm = (timeSeconds / 60) % 60;
+            int ss = timeSeconds % 60;
+
+            char timeBuf[9];
+            sprintf_s(timeBuf, "%02d:%02d:%02d", hh, mm, ss);
+
+            // Connect exactly like your getLeaderboard() does:
+            SQLHENV hEnv; SQLHDBC hDbc; SQLHSTMT hStmt; SQLRETURN ret;
+
+            ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, (SQLHANDLE*)&hEnv);
+            SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+            ret = SQLAllocHandle(SQL_HANDLE_DBC, (SQLHANDLE)hEnv, (SQLHANDLE*)&hDbc);
+
+            auto cfg = loadConfig("db.conf");
+            std::string connStr =
+                "Driver={" + cfg["Driver"] + "};" +
+                "Server=" + cfg["Server"] + ";" +
+                "Database=" + cfg["Database"] + ";" +
+                "Uid=" + cfg["User"] + ";" +
+                "Pwd=" + cfg["Password"] + ";" +
+                "Encrypt=" + cfg["Encrypt"] + ";" +
+                "TrustServerCertificate=" + cfg["TrustServerCertificate"] + ";" +
+                "Connection Timeout=" + cfg["Timeout"] + ";";
+
+            ret = SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)connStr.c_str(), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
+            if (!SQL_SUCCEEDED(ret)) {
+                std::string err = odbc_error(SQL_HANDLE_DBC, hDbc);
+                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
+                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+                return crow::response(500, "DB connect failed: " + err);
+            }
+
+            ret = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
+            if (!SQL_SUCCEEDED(ret)) {
+                std::string err = odbc_error(SQL_HANDLE_DBC, hDbc);
+                SQLDisconnect(hDbc);
+                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
+                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+                return crow::response(500, "STMT alloc failed: " + err);
+            }
+
+            // Rank is NOT NULL in your table, so insert 0
+            std::string sql =
+                "INSERT INTO dbo.PlayerRanks (Rank, Name, NumOfMoves, Time) VALUES (0, N'" +
+                clean + "', " + std::to_string(moves) + ", '" + timeBuf + "')";
+
+            ret = SQLExecDirectA(hStmt, (SQLCHAR*)sql.c_str(), SQL_NTS);
+
+            if (!SQL_SUCCEEDED(ret)) {
+                std::string err = odbc_error(SQL_HANDLE_STMT, hStmt);
+                SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
+                SQLDisconnect(hDbc);
+                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
+                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+                return crow::response(500, "INSERT failed: " + err);
+            }
+
+            SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
+            SQLDisconnect(hDbc);
+            SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
+            SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+
+            return crow::response(200, "OK");
+        }
+        catch (...) {
+            return crow::response(500, "Server error");
+        }
+    });
+
     app.port(PORT_NUMBER).multithreaded().run();
     return 0;
-
-
-    
 }
