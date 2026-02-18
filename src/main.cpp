@@ -17,10 +17,10 @@ using namespace crow;
     Struct for handling the database data
 */
 struct LeaderboardEntry{
-    int ID;
+    int Id;
     string Name;
     int NumOfMoves;
-    int TimeInSeconds;
+    string Time;
     int Rank;
 };
 
@@ -134,25 +134,26 @@ vector<LeaderboardEntry> getLeaderboard() {
         throw runtime_error("Failed to allocate SQL statement");
     }
     
-    ret = SQLExecDirect(hStmt, (SQLCHAR*)"SELECT ID, Name, NumOfMoves, TimeInSeconds FROM Leaderboard ORDER BY NumOfMoves ASC, TimeInSeconds ASC", SQL_NTS);
+    ret = SQLExecDirect(hStmt, (SQLCHAR*)"SELECT ID, Name, NumOfMoves, Time FROM dbo.PlayerRanks ORDER BY NumOfMoves ASC, Time ASC", SQL_NTS);
     if (!SQL_SUCCEEDED(ret)) {
         SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
         SQLDisconnect(hDbc);
         SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
         SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-        throw runtime_error("Failed to execute SELECT on Leaderboard");
+        throw runtime_error("Failed to execute SELECT on database");
     }
 
-    SQLINTEGER id, moves, time;
+    SQLINTEGER id, moves;
+    SQLCHAR time[9];
     SQLCHAR name[50];
 
     while (SQLFetch(hStmt) == SQL_SUCCESS) {
         SQLGetData(hStmt, 1, SQL_C_SLONG, &id, 0, NULL);
         SQLGetData(hStmt, 2, SQL_C_CHAR, name, sizeof(name), NULL);
         SQLGetData(hStmt, 3, SQL_C_SLONG, &moves, 0, NULL);
-        SQLGetData(hStmt, 4, SQL_C_SLONG, &time, 0, NULL);
+        SQLGetData(hStmt, 4, SQL_C_CHAR, time, sizeof(time), NULL);
 
-        entries.push_back({id, string((char*)name), moves, time});
+        entries.push_back({id, string((char*)name), moves, string((char*)time)});
     }
 
     SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
@@ -261,14 +262,17 @@ int main(){
             int rank = 1;
             for (auto &e : entries) {
                 string key = to_string(rank);
-                result[key]["ID"] = e.ID;
+                result[key]["Id"] = e.Id;
                 result[key]["Name"] = e.Name;
                 result[key]["NumOfMoves"] = e.NumOfMoves;
-                result[key]["TimeInSeconds"] = e.TimeInSeconds;
+                result[key]["Time"] = e.Time;
                 result[key]["Rank"] = rank++;
             }
 
             return crow::response(200, result);
+        }
+        catch (const runtime_error &e){
+            return crow::response(500, string("Runtime error: ") + e.what());
         }
         catch (const exception& ex){
             return crow::response(500, string("Database error: ") + ex.what());

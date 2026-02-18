@@ -1,7 +1,10 @@
 async function loadLeaderboard() {
     try {
         const res = await fetch('/api/leaderboard');
-        if (!res.ok) throw new Error("Failed to fetch leaderboard");
+        if (!res.ok){
+            const txt = await res.text(); 
+            throw new Error("Failed to fetch leaderboard: " + txt);
+        }
     
         const data = await res.json();
         const tbody = document.querySelector("#leaderboard tbody");
@@ -18,12 +21,18 @@ async function loadLeaderboard() {
                 <td>${entry.Rank}</td>
                 <td>${entry.Name}</td>
                 <td>${entry.NumOfMoves}</td>
-                <td>${entry.TimeInSeconds}</td>
+                <td>${entry.Time}</td>
             `;
             tbody.appendChild(row);
+            
+            var timeArray = entry.Time.split(":");
+            var timeSeconds = 
+                (parseInt(timeArray[0], 10) * 60 * 60) +
+                (parseInt(timeArray[1], 10) * 60) +
+                parseInt(timeArray[2], 10);
 
             totalMoves += entry.NumOfMoves;
-            totalTime += entry.TimeInSeconds;
+            totalTime += timeSeconds;
             count++;
         }
 
@@ -32,7 +41,7 @@ async function loadLeaderboard() {
 
     } catch (err) {
         console.error(err);
-        alert("Could not load leaderboard data.")
+        alert("Error: " + err);
     }
 }
 
