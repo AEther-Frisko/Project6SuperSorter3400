@@ -1,0 +1,119 @@
+:root {
+    --bg-colour: #cad2c5;
+    --main-colour: #84a98c;
+    --header-colour: #52796f;
+    --nav-colour: #354f52;
+    --text-colour: #1B2720;
+}
+
+body {
+    background-color: var(--bg-colour);
+    margin: 0;
+    padding: 0;
+    color: var(--text-colour);
+    font-family: Garamond, serif;
+}
+
+h1, h2, h3 {
+    font-family: Helvetica, sans-serif;
+}
+
+header {
+    background-color: var(--header-colour);
+    text-align: center;
+    color: var(--bg-colour);
+    padding: 10px;
+}
+
+nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--nav-colour);
+}
+
+nav a {
+    display: block;
+    color: var(--bg-colour);
+    padding: 14px 16px;
+    text-decoration: none;
+}
+
+nav a:hover {
+    background-color: var(--main-colour);
+    color: var(--text-colour);
+}
+
+main {
+    margin: 30px auto;
+    width: 50%;
+    background-color: var(--main-colour);
+    padding: 30px;
+    border-radius: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+}
+
+footer {
+    background-color: var(--header-colour);
+    text-align: center;
+    color: var(--bg-colour);
+    padding: 8px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 15px;
+    background-color: var(--header-colour);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.grid div {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    aspect-ratio: 1;
+    font-size: 1.5rem;
+    background-color: var(--bg-colour);
+    color: var(--text-colour);
+    border-radius: 8px;
+    border: 1px solid var(--nav-colour);
+}
+
+table {
+    border-collapse: collapse;
+    margin: 20px auto;
+    width: 100%;
+    max-width: 600px;
+    background-color: var(--main-colour);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+th {
+    background-color: var(--nav-colour);
+    color: var(--bg-colour);
+    padding: 12px;
+    text-align: left;
+}
+
+td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--header-colour);
+}
+
+tr:nth-child(even){
+    background-color: var(--bg-colour);
+}
+
+tr:hover{
+    background-color: var(--header-colour);
+    color: var(--bg-colour);
+    transition: background 0.15s ease;
+}

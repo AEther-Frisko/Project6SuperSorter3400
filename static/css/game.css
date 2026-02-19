@@ -1,0 +1,78 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+  margin: 10px auto;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  font-size: 1.5rem;
+  border-radius: 10px;
+  border: 1px solid var(--header-colour);
+  background-color: var(--bg-colour);
+  opacity: 0.85;
+  color: var(--text-colour);
+  cursor: default;
+  transition: background 0.15s ease, transform 0.05s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.cell.swap{
+  transform: scale(1.15);
+}
+.cell.empty {
+  background: transparent;
+  border: 1px dashed var(--nav-colour);
+}
+.cell.movable {
+  cursor: pointer;
+  opacity: 1;
+  background-color: var(--main-colour);
+  color: var(--text-colour);
+}
+.cell.movable:hover {
+  background-color: var(--header-colour);
+  border-color: var(--bg-colour);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+.grid.solved .cell {
+  background: var(--main-colour);
+  color: var(--bg-colour);
+  border-color: var(--header-colour);
+}
+.grid.solved .cell.empty {
+  background: transparent;
+  border-style: dashed;
+}
+
+#newGameBtn{
+  padding: 10px 16px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--nav-colour);
+  background-color: var(--main-colour);
+  color: var(--text-colour);
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.15s ease, box-shadow 0.15s ease;
+  margin: 10px auto;
+  display: block;
+}
+#newGameBtn:hover{
+  background-color: var(--header-colour);
+  color: var(--bg-colour);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+#newGameBtn:active{
+  transform: translateY(1px);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+#newGameBtn:focus{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(132, 169, 140, 0.35);
+}
