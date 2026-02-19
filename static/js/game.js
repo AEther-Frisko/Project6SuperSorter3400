@@ -1,3 +1,5 @@
+import { formatTime } from "./utils.js";
+
 const gridEl = document.getElementById("grid");
 const movesEl = document.getElementById("moves");
 const timeEl  = document.getElementById("time");
@@ -18,9 +20,9 @@ let submitted = false;
 function startTimer() {
     stopTimer();
     startTimeMs = Date.now();
-    timeEl.textContent = "0";
+    timeEl.textContent = "00:00:00";
     timerId = setInterval(() => {
-      timeEl.textContent = Math.floor((Date.now() - startTimeMs) / 1000);
+      timeEl.textContent = formatTime(elapsedSeconds());
     }, 250);
 }
 

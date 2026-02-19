@@ -1,3 +1,5 @@
+import { formatTime } from "./utils.js";
+
 async function loadLeaderboard() {
     try {
         const res = await fetch('/api/leaderboard');
@@ -37,7 +39,7 @@ async function loadLeaderboard() {
         }
 
         document.getElementById("avgMoves").textContent = count ? (totalMoves / count).toFixed(2) : 0;
-        document.getElementById("avgTime").textContent = count ? (totalTime / count).toFixed(2) : 0;
+        document.getElementById("avgTime").textContent = count ? formatTime(Math.round(totalTime / count)) : "00:00:00";
 
     } catch (err) {
         console.error(err);

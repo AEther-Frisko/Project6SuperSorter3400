@@ -2,15 +2,14 @@
   <link rel="stylesheet" href="../static/css/game.css">
 </head>
 
-<div style="margin-bottom: 8px;">
+<div style="margin-bottom: 8px; text-align: center;">
   <label for="playerName">Name (3 letters):</label>
   <input id="playerName" maxlength="3" placeholder="ABC"
          style="text-transform: uppercase; width: 70px;">
 </div>
 
-<p>
-  Moves: <span id="moves">0</span>
-  Time: <span id="time">0</span>s
+<p style="text-align: center;">
+  Moves: <span id="moves">0</span> | Time: <span id="time">00:00:00</span>
   <span id="status" style="margin-left: 10px;"></span>
 </p>
 
@@ -20,4 +19,4 @@
   <button id="newGameBtn">New Game</button>
 </div>
 
-<script src="../static/js/game.js"></script>
+<script type="module" src="../static/js/game.js"></script>

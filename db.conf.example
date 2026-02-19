@@ -1,8 +1,0 @@
-Driver=ODBC Driver 18 for SQL Server
-Server=tcp:SERVER_NAME.database.windows.net,1433
-Database=DATABASE_NAME
-User=USER
-Password=PASSWORD
-Encrypt=yes
-TrustServerCertificate=no
-Timeout=30

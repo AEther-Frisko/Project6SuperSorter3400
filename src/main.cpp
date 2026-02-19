@@ -26,6 +26,8 @@ struct LeaderboardEntry{
 
 /*
     Loads in the config file for connecting to the database
+    
+    No longer used due to .env file!!
 */
 unordered_map<string, string> loadConfig(const string& path) {
     unordered_map<string, string> cfg;
@@ -64,6 +66,28 @@ static std::string odbc_error(SQLSMALLINT handleType, SQLHANDLE handle) {
 }
 
 /*
+    Creates a proper connection string for the Azure database 
+*/
+string createConnStr(){
+    const char* server = getenv("DB_SERVER");
+    const char* db = getenv("DB_NAME");
+    const char* user = getenv("DB_USER");
+    const char* pass = getenv("DB_PASS");
+
+    string connStr =
+        "Driver={ODBC Driver 18 for SQL Server};"
+        "Server=tcp:" + string(server) + ",1433;"
+        "Database=" + string(db) + ";"
+        "Uid=" + string(user) + ";"
+        "Pwd=" + string(pass) + ";"
+        "Encrypt=yes;"
+        "TrustServerCertificate=no;"
+        "Connection Timeout=30;";
+    
+    return connStr;
+}
+
+/*
     Retrieves database data
 */
 vector<LeaderboardEntry> getLeaderboard() {
@@ -86,17 +110,7 @@ vector<LeaderboardEntry> getLeaderboard() {
         throw runtime_error("Failed to allocate ODBC connection");
     }
 
-    auto cfg = loadConfig("db.conf");
-
-    std::string connStr =
-        "Driver={" + cfg["Driver"] + "};" +
-        "Server=" + cfg["Server"] + ";" +
-        "Database=" + cfg["Database"] + ";" +
-        "Uid=" + cfg["User"] + ";" +
-        "Pwd=" + cfg["Password"] + ";" +
-        "Encrypt=" + cfg["Encrypt"] + ";" +
-        "TrustServerCertificate=" + cfg["TrustServerCertificate"] + ";" +
-        "Connection Timeout=" + cfg["Timeout"] + ";";
+    string connStr = createConnStr();
     
     const SQLCHAR* sqlConnStr = reinterpret_cast<const SQLCHAR*>(connStr.c_str());
 
@@ -312,7 +326,7 @@ int main(){
             int ss = timeSeconds % 60;
 
             char timeBuf[9];
-            sprintf_s(timeBuf, "%02d:%02d:%02d", hh, mm, ss);
+            sprintf(timeBuf, "%02d:%02d:%02d", hh, mm, ss);
 
             // Connect exactly like your getLeaderboard() does:
             SQLHENV hEnv; SQLHDBC hDbc; SQLHSTMT hStmt; SQLRETURN ret;
@@ -321,16 +335,7 @@ int main(){
             SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
             ret = SQLAllocHandle(SQL_HANDLE_DBC, (SQLHANDLE)hEnv, (SQLHANDLE*)&hDbc);
 
-            auto cfg = loadConfig("db.conf");
-            std::string connStr =
-                "Driver={" + cfg["Driver"] + "};" +
-                "Server=" + cfg["Server"] + ";" +
-                "Database=" + cfg["Database"] + ";" +
-                "Uid=" + cfg["User"] + ";" +
-                "Pwd=" + cfg["Password"] + ";" +
-                "Encrypt=" + cfg["Encrypt"] + ";" +
-                "TrustServerCertificate=" + cfg["TrustServerCertificate"] + ";" +
-                "Connection Timeout=" + cfg["Timeout"] + ";";
+            std::string connStr = createConnStr();
 
             ret = SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)connStr.c_str(), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
             if (!SQL_SUCCEEDED(ret)) {

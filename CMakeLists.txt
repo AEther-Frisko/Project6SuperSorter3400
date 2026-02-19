@@ -10,6 +10,7 @@ target_include_directories(server PRIVATE
     ${CMAKE_SOURCE_DIR}/third_party/asio/include
 )
 
-target_link_libraries(server PRIVATE odbc32)
+find_package(ODBC REQUIRED)
+target_link_libraries(server PRIVATE ODBC::ODBC)
 
 target_include_directories(server PRIVATE ${CMAKE_SOURCE_DIR}/src ...)
