@@ -221,8 +221,8 @@ int main(){
     // GET Game page
     CROW_ROUTE(app, "/game")(makePageRoute("Play Game", "game.html"));
 
-    // NEW GAME
-    CROW_ROUTE(app, "/api/new")([](){
+    // NEW GAME THROUGH NEWGAME Button
+    CROW_ROUTE(app, "/api/new").methods("DELETE"_method)([](const crow::request& req) {
         board = createShuffledBoard();
         moveCount = 0;
 
@@ -234,8 +234,20 @@ int main(){
         return crow::response(200, out);
     });
 
+    CROW_ROUTE(app, "/api/startgame")([]() {
+        board = createShuffledBoard();
+        moveCount = 0;
+
+        crow::json::wvalue out;
+        out["board"] = board;
+        out["moves"] = moveCount;
+        out["solved"] = isSolved(board);
+        out["validMoves"] = getValidMoves(board);
+        return crow::response(200, out);
+        });
+
     // MAKE MOVE
-    CROW_ROUTE(app, "/api/move").methods("POST"_method)
+    CROW_ROUTE(app, "/api/move").methods("PATCH"_method)
     ([](const crow::request& req){
         auto body = crow::json::load(req.body);
         if (!body || !body.has("pos")) {

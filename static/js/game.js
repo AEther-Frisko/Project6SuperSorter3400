@@ -130,9 +130,14 @@ function render() {
 async function newGame() {
     statusEl.textContent = "Loading...";
     submitted = false;
+    
+    
+    const res = await fetch("/api/new", { method: "DELETE" });
+
+
     startTimer();
 
-    const res = await fetch("/api/new");
+
     if (!res.ok) {
       statusEl.textContent = "Missing /api/new on server";
       stopTimer();
@@ -142,9 +147,26 @@ async function newGame() {
     render();
 }
 
+async function startGame() {
+    statusEl.textContent = "Loading...";
+    submitted = false;
+
+    const res = await fetch("/api/startgame")
+
+    startTimer();
+
+    if (!res.ok) {
+        statusEl.textContent = "Missing /api/startgame on server";
+        stopTimer();
+        return;
+    }
+    state = await res.json();
+    render();
+}
+
 async function makeMove(pos) {
     const res = await fetch("/api/move", {
-      method: "POST",
+      method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pos })
     });
@@ -166,4 +188,4 @@ async function makeMove(pos) {
 }
 
 newBtn.addEventListener("click", newGame);
-newGame();
+startGame();
