@@ -211,6 +211,7 @@ int main(){
     // Game state (in-memory)
     static std::vector<int> board;
     static int moveCount = 0;
+    static std::vector<int> moveHistory;
 
     // GET Home page
     CROW_ROUTE(app, "/")(makePageRoute("Home", "home.html"));
@@ -274,7 +275,30 @@ int main(){
         return crow::response(200, out);
     });
 
+    // UNDO MOVE
+        
+    CROW_ROUTE(app, "/api/undo").methods("PUT"_method)
+        ([](const crow::request& req) {
+        bool undone = undoMove(board);
+        if (undone && moveCount > 0) moveCount--;
 
+        crow::json::wvalue out;
+        out["undone"] = undone;
+        out["board"] = board;
+        out["moves"] = moveCount;
+        out["solved"] = isSolved(board);
+        out["validMoves"] = getValidMoves(board);
+        return crow::response(200, out);
+            });
+
+    
+    // Options route 
+    //CROW_ROUTE(app, "/api/move").methods("OPTIONS"_method)([](const crow::request& req) {
+        //crow::response res;
+        //req.add_header("Access-Control-Allow-Methods", "PATCH, OPTIONS");
+        //req.add_header("Access-Control-Allow-Headers", "Content-Type");
+        //return res;
+		//});
     // GET Leaderboard entries from database
     CROW_ROUTE(app, "/api/leaderboard")([](){
         try {
@@ -307,6 +331,26 @@ int main(){
             return crow::response(500, "Unknown server error while fetching leaderboard");
         }
     });
+
+    CROW_ROUTE(app, "/api/hint").methods("GET"_method)
+        ([](const crow::request& req) {
+        //req.add_header("Access-Control-Allow-Methods", "PATCH, OPTIONS");
+        //req.add_header("Access-Control-Allow-Headers", "Content-Type");
+        vector<int> moves = solvePuzzle(board);
+
+        crow::response res(200);
+        res.set_header("Content-Type", "application/json");
+
+        crow::json::wvalue out;
+        if (moves.empty()) {
+            out["message"] = "No solution found";
+        }
+        else {
+            out["hint"] = moves[0];
+        }
+        res.body = out.dump();
+        return res;
+            });
 
     //Post game stats to the db
     CROW_ROUTE(app, "/api/submit").methods("POST"_method)

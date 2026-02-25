@@ -5,10 +5,17 @@
 #include <vector>
 #include <algorithm>
 #include <random>
+#include <queue>
+#include <unordered_map>
+#include <cmath>
+#include <stack>
 #include "PuzzleLogic.h"
+
 
 using namespace std;
 
+int lastmoved = -1; // Track last moved tile for undo functionality
+stack<int> moveHistory; // Stack to track move history for undo functionality
 // Check if puzzle is in solved state
 bool isSolved(const vector<int>& board) {
     for (int i = 0; i < 8; i++) {
@@ -74,7 +81,18 @@ bool makeMove(vector<int>& board, int tilePos) {
     if (!isValidMove(board, tilePos)) return false;
 
     int emptyPos = findEmptyPos(board);
+	moveHistory.push(emptyPos); // Save current empty position for undo
     swap(board[emptyPos], board[tilePos]);
+	
+    return true;
+}
+
+bool undoMove(vector<int>& board) {
+    if (moveHistory.empty()) return false;
+    int prevPos = moveHistory.top();
+    moveHistory.pop();
+    int emptyPos = findEmptyPos(board);
+    swap(board[emptyPos], board[prevPos]);
     return true;
 }
 
@@ -96,6 +114,76 @@ vector<int> getValidMoves(const vector<int>& board) {
 
     return moves;
 }
+
+// Manhattan distance heuristic
+int manhattan(const vector<int>& board) {
+    int dist = 0;
+    for (int i = 0; i < board.size(); i++) {
+        if (board[i] == 0) continue;
+        int val = board[i] - 1;
+        int targetRow = val / 3, targetCol = val % 3;
+        int curRow = i / 3, curCol = i % 3;
+        dist += abs(targetRow - curRow) + abs(targetCol - curCol);
+    }
+    return dist;
+}
+
+vector<int> solvePuzzle(vector<int> start) {
+    using State = pair<int, vector<int>>; // cost, board
+    priority_queue<State, vector<State>, greater<State>> pq;
+    unordered_map<string, int> visited;
+    unordered_map<string, pair<string, int>> parent; // state -> {prevState, move}
+
+    auto encode = [](const vector<int>& b) {
+        string s;
+        for (int x : b) s += to_string(x) + ",";
+        return s;
+        };
+
+    string startKey = encode(start);
+    pq.push({ manhattan(start), start });
+    visited[startKey] = 0;
+    parent[startKey] = { "", -1 };
+
+    vector<int> goal = { 1,2,3,4,5,6,7,8,0 };
+
+    while (!pq.empty()) {
+        auto [cost, board] = pq.top(); pq.pop();
+        string key = encode(board);
+
+        if (board == goal) {
+            // Reconstruct move sequence
+            vector<int> moves;
+            string cur = key;
+            while (parent[cur].second != -1) {
+                moves.push_back(parent[cur].second);
+                cur = parent[cur].first;
+            }
+            reverse(moves.begin(), moves.end());
+            return moves;
+        }
+
+        int g = visited[key];
+        int empty = findEmptyPos(board);
+        vector<int> neighbours = getValidMoves(board);
+
+        for (int pos : neighbours) {
+            vector<int> next = board;
+            swap(next[empty], next[pos]);
+            string nextKey = encode(next);
+            int ng = g + 1;
+
+            if (!visited.count(nextKey) || visited[nextKey] > ng) {
+                visited[nextKey] = ng;
+                parent[nextKey] = { key, pos };
+                pq.push({ ng + manhattan(next), next });
+            }
+        }
+    }
+    return {}; // unsolvable
+}
+
+
 
 #endif // PUZZLE_LOGIC_H
 

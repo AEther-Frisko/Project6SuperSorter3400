@@ -5,6 +5,8 @@ const movesEl = document.getElementById("moves");
 const timeEl  = document.getElementById("time");
 const statusEl = document.getElementById("status");
 const newBtn = document.getElementById("newGameBtn");
+const undoBtn = document.getElementById("undoBtn");
+const hintBtn = document.getElementById("hintBtn");
 
 const nameEl = document.getElementById("playerName");
 nameEl.value = (localStorage.getItem("playerName3") || "").toUpperCase();
@@ -186,6 +188,34 @@ async function makeMove(pos) {
       submitScore();
     }
 }
+
+undoBtn.addEventListener("click", undoMove);
+
+async function undoMove(pos) {
+    const res = await fetch("/api/undo", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        //body: JSON.stringify({ pos })
+    });
+
+    if (!res.ok) {
+        statusEl.textContent = "Missing /api/undo on server";
+        return;
+    }
+    state = await res.json();
+    render();
+}
+
+
+
+hintBtn.addEventListener("click", async () => {
+    const res = await fetch("/api/hint", { method: "GET" });
+    const data = await res.json();
+    if (data.hint !== undefined) {
+        document.querySelectorAll(".cell").forEach(c => c.classList.remove("hint"));
+        gridEl.children[data.hint].classList.add("hint");
+    }
+});
 
 newBtn.addEventListener("click", newGame);
 startGame();

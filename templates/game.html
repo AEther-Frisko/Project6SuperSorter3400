@@ -1,22 +1,30 @@
 <head>
-  <link rel="stylesheet" href="../static/css/game.css">
+    <link rel="stylesheet" href="../static/css/game.css">
 </head>
 
 <div style="margin-bottom: 8px; text-align: center;">
-  <label for="playerName">Name (3 letters):</label>
-  <input id="playerName" maxlength="3" placeholder="ABC"
-         style="text-transform: uppercase; width: 70px;">
+    <label for="playerName">Name (3 letters):</label>
+    <input id="playerName" maxlength="3" placeholder="ABC"
+           style="text-transform: uppercase; width: 70px;">
 </div>
 
 <p style="text-align: center;">
-  Moves: <span id="moves">0</span> | Time: <span id="time">00:00:00</span>
-  <span id="status" style="margin-left: 10px;"></span>
+    Moves: <span id="moves">0</span> | Time: <span id="time">00:00:00</span>
+    <span id="status" style="margin-left: 10px;"></span>
 </p>
 
 <div id="grid" class="grid"></div>
 
 <div style="margin-top: 12px;">
-  <button id="newGameBtn">New Game</button>
+    <button id="newGameBtn">New Game</button>
+</div>
+
+<div style="margin-top: 18px;">
+    <button id="undoBtn">Undo</button>
+</div>
+
+<div style="margin-top: 24px;">
+    <button id="hintBtn">Hint</button>
 </div>
 
 <script type="module" src="../static/js/game.js"></script>
