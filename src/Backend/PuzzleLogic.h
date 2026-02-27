@@ -15,7 +15,14 @@
 using namespace std;
 
 
-stack<int> moveHistory; // Stack to track move history for undo functionality
+extern stack<int> moveHistory; // Stack to track move history for undo functionality
+extern vector<int> board;
+extern int moveCount;
+
+
+static vector<int> cachedSolution;
+static vector<int> cachedBoard;
+
 // Check if puzzle is in solved state
 bool isSolved(const vector<int>& board) {
     for (int i = 0; i < 8; i++) {
@@ -184,6 +191,20 @@ vector<int> solvePuzzle(vector<int> start) {
         }
     }
     return {}; // unsolvable
+}
+
+vector<int> getSolution() {
+    if (board == cachedBoard && !cachedSolution.empty()) {
+        return cachedSolution;
+    }
+    cachedBoard = board;
+    cachedSolution = solvePuzzle(board);
+    return cachedSolution;
+}
+
+void invalidateCache() {
+    cachedBoard.clear();
+    cachedSolution.clear();
 }
 
 

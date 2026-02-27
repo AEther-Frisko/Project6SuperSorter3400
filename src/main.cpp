@@ -13,8 +13,14 @@ using namespace std;
 using namespace crow;
 
 #define PORT_NUMBER 18080
+static SQLHENV hEnv = SQL_NULL_HANDLE;
+static SQLHDBC hDbc = SQL_NULL_HANDLE;
 
 mutex boardMutex; // Mutex to protect game state in case of concurrent access (Hopefullly stops crashes)
+mutex dbMutex;
+ std::vector<int> board;
+ int moveCount = 0;
+ std::stack<int> moveHistory;
 
 /*
     Struct for handling the database data
@@ -90,73 +96,35 @@ string createConnStr(){
     return connStr;
 }
 
+void initDB() {
+    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, (SQLHANDLE*)&hEnv);
+    SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+    SQLAllocHandle(SQL_HANDLE_DBC, (SQLHANDLE)hEnv, (SQLHANDLE*)&hDbc);
+
+    string connStr = createConnStr();
+    SQLRETURN ret = SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)connStr.c_str(),
+        SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
+
+    if (!SQL_SUCCEEDED(ret)) {
+        throw runtime_error("DB init failed: " + odbc_error(SQL_HANDLE_DBC, hDbc));
+    }
+}
+
 /*
     Retrieves database data
 */
 vector<LeaderboardEntry> getLeaderboard() {
+    std::lock_guard<std::mutex> lock(dbMutex);
     vector<LeaderboardEntry> entries;
-
-    SQLHENV hEnv;
-    SQLRETURN ret;
-    SQLHDBC hDbc;
     SQLHSTMT hStmt;
 
-    ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, (SQLHANDLE*)&hEnv);
-    if (!SQL_SUCCEEDED(ret)){
-        throw runtime_error("Failed to allocate ODBC environment");
-    }
-
-    SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
-    
-    ret = SQLAllocHandle(SQL_HANDLE_DBC, (SQLHANDLE)hEnv, (SQLHANDLE*)&hDbc);
-    if (!SQL_SUCCEEDED(ret)){
-        throw runtime_error("Failed to allocate ODBC connection");
-    }
-
-    string connStr = createConnStr();
-    
-    const SQLCHAR* sqlConnStr = reinterpret_cast<const SQLCHAR*>(connStr.c_str());
-
-    ret = SQLDriverConnect(
-        hDbc,
-        NULL,
-        (SQLCHAR*)sqlConnStr,
-        SQL_NTS,
-        NULL,
-        0,
-        NULL,
-        SQL_DRIVER_COMPLETE
-    );
-
-    if (!SQL_SUCCEEDED(ret)){
-        SQLCHAR sqlState[6], message[1024];
-        SQLINTEGER nativeError;
-        SQLSMALLINT textLength;
-        SQLGetDiagRec(SQL_HANDLE_DBC, hDbc, 1, sqlState, &nativeError, message, sizeof(message), &textLength);
-
-        string err = "ODBC connection failed: ";
-        err += (char*)message;
-
-        SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-        SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-
-        throw runtime_error(err);
-    }
-
-    ret = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
-    if (!SQL_SUCCEEDED(ret)){
-        SQLDisconnect(hDbc);
-        SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-        SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
+    if (!SQL_SUCCEEDED(ret))
         throw runtime_error("Failed to allocate SQL statement");
-    }
-    
+
     ret = SQLExecDirect(hStmt, (SQLCHAR*)"SELECT ID, Name, NumOfMoves, Time FROM dbo.PlayerRanks ORDER BY NumOfMoves ASC, Time ASC", SQL_NTS);
     if (!SQL_SUCCEEDED(ret)) {
         SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
-        SQLDisconnect(hDbc);
-        SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-        SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
         throw runtime_error("Failed to execute SELECT on database");
     }
 
@@ -169,15 +137,10 @@ vector<LeaderboardEntry> getLeaderboard() {
         SQLGetData(hStmt, 2, SQL_C_CHAR, name, sizeof(name), NULL);
         SQLGetData(hStmt, 3, SQL_C_SLONG, &moves, 0, NULL);
         SQLGetData(hStmt, 4, SQL_C_CHAR, time, sizeof(time), NULL);
-
-        entries.push_back({id, string((char*)name), moves, string((char*)time)});
+        entries.push_back({ id, string((char*)name), moves, string((char*)time) });
     }
 
     SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
-    SQLDisconnect(hDbc);
-    SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-    SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-
     return entries;
 }
 
@@ -210,11 +173,17 @@ auto makePageRoute = [](const string& title, const string& file){
 };
 
 int main(){
+
+    try {
+        initDB();
+    }
+    catch (const runtime_error& e) {
+        std::cerr << "Failed to connect to database: " << e.what() << std::endl;
+        return 1;
+    }
     crow::SimpleApp app;
     // Game state (in-memory)
-    static std::vector<int> board;
-    static int moveCount = 0;
-    static std::vector<int> moveHistory;
+    
 
     // GET Home page
     CROW_ROUTE(app, "/")(makePageRoute("Home", "home.html"));
@@ -231,6 +200,7 @@ int main(){
         
         board = createShuffledBoard();
         moveCount = 0;
+        invalidateCache();
 
         crow::json::wvalue out;
         out["board"] = board;
@@ -244,6 +214,7 @@ int main(){
 		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
         board = createShuffledBoard();
         moveCount = 0;
+        invalidateCache();
 
         crow::json::wvalue out;
         out["board"] = board;
@@ -271,7 +242,10 @@ int main(){
         }
 
         bool moved = makeMove(board, pos);
-        if (moved) moveCount++;
+        if (moved) {
+            moveCount++;
+            invalidateCache();
+        }
 
         crow::json::wvalue out;
         out["moved"] = moved;
@@ -288,7 +262,10 @@ int main(){
         ([](const crow::request& req) {
 		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
         bool undone = undoMove(board);
-        if (undone && moveCount > 0) moveCount--;
+        if (undone && moveCount > 0) {
+            moveCount--;
+            invalidateCache();
+        }
 
         crow::json::wvalue out;
         out["undone"] = undone;
@@ -352,7 +329,7 @@ int main(){
             moveCount = 0;
         }
 
-        vector<int> moves = solvePuzzle(board);
+        vector<int> moves = getSolution();
         if (moves.empty()) {
             out["message"] = "No solution found";
         }
@@ -365,7 +342,7 @@ int main(){
 
     //Post game stats to the db
     CROW_ROUTE(app, "/api/submit").methods("POST"_method)
-    ([](const crow::request& req){
+        ([](const crow::request& req) {
         try {
             auto body = crow::json::load(req.body);
             if (!body || !body.has("name") || !body.has("moves") || !body.has("timeSeconds"))
@@ -375,7 +352,6 @@ int main(){
             int moves = body["moves"].i();
             int timeSeconds = body["timeSeconds"].i();
 
-            // Force ABC format (prevents SQL injection too)
             std::string clean;
             for (char c : name) {
                 if (c >= 'a' && c <= 'z') c = char(c - 'a' + 'A');
@@ -387,67 +363,35 @@ int main(){
             if (moves < 0) moves = 0;
             if (timeSeconds < 0) timeSeconds = 0;
 
-            // Convert seconds to SQL TIME string "HH:MM:SS"
             int hh = (timeSeconds / 3600) % 24;
             int mm = (timeSeconds / 60) % 60;
             int ss = timeSeconds % 60;
-
             char timeBuf[9];
             sprintf(timeBuf, "%02d:%02d:%02d", hh, mm, ss);
 
-            // Connect exactly like your getLeaderboard() does:
-            SQLHENV hEnv; SQLHDBC hDbc; SQLHSTMT hStmt; SQLRETURN ret;
+            // Just allocate a statement on the existing connection
+            std::lock_guard<std::mutex> lock(dbMutex);
+            SQLHSTMT hStmt;
+            SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
+            if (!SQL_SUCCEEDED(ret))
+                return crow::response(500, "STMT alloc failed: " + odbc_error(SQL_HANDLE_DBC, hDbc));
 
-            ret = SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, (SQLHANDLE*)&hEnv);
-            SQLSetEnvAttr(hEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
-            ret = SQLAllocHandle(SQL_HANDLE_DBC, (SQLHANDLE)hEnv, (SQLHANDLE*)&hDbc);
-
-            std::string connStr = createConnStr();
-
-            ret = SQLDriverConnectA(hDbc, NULL, (SQLCHAR*)connStr.c_str(), SQL_NTS, NULL, 0, NULL, SQL_DRIVER_COMPLETE);
-            if (!SQL_SUCCEEDED(ret)) {
-                std::string err = odbc_error(SQL_HANDLE_DBC, hDbc);
-                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-                return crow::response(500, "DB connect failed: " + err);
-            }
-
-            ret = SQLAllocHandle(SQL_HANDLE_STMT, hDbc, &hStmt);
-            if (!SQL_SUCCEEDED(ret)) {
-                std::string err = odbc_error(SQL_HANDLE_DBC, hDbc);
-                SQLDisconnect(hDbc);
-                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-                return crow::response(500, "STMT alloc failed: " + err);
-            }
-
-            
             std::string sql =
                 "INSERT INTO dbo.PlayerRanks (Rank, Name, NumOfMoves, Time) VALUES (0, N'" +
                 clean + "', " + std::to_string(moves) + ", '" + timeBuf + "')";
 
             ret = SQLExecDirectA(hStmt, (SQLCHAR*)sql.c_str(), SQL_NTS);
-
-            if (!SQL_SUCCEEDED(ret)) {
-                std::string err = odbc_error(SQL_HANDLE_STMT, hStmt);
-                SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
-                SQLDisconnect(hDbc);
-                SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-                SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
-                return crow::response(500, "INSERT failed: " + err);
-            }
-
             SQLFreeHandle(SQL_HANDLE_STMT, hStmt);
-            SQLDisconnect(hDbc);
-            SQLFreeHandle(SQL_HANDLE_DBC, hDbc);
-            SQLFreeHandle(SQL_HANDLE_ENV, hEnv);
+
+            if (!SQL_SUCCEEDED(ret))
+                return crow::response(500, "INSERT failed");
 
             return crow::response(200, "OK");
         }
         catch (...) {
             return crow::response(500, "Server error");
         }
-    });
+            });
 
     app.port(PORT_NUMBER).multithreaded().run();
     return 0;
