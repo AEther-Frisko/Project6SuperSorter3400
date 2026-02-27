@@ -6,12 +6,15 @@
 #include <sstream>
 #include <fstream>
 #include <unordered_map>
+#include <mutex>
 #include "Backend/PuzzleLogic.h"
 
 using namespace std;
 using namespace crow;
 
 #define PORT_NUMBER 18080
+
+mutex boardMutex; // Mutex to protect game state in case of concurrent access (Hopefullly stops crashes)
 
 /*
     Struct for handling the database data
@@ -224,6 +227,8 @@ int main(){
 
     // NEW GAME THROUGH NEWGAME Button
     CROW_ROUTE(app, "/api/new").methods("DELETE"_method)([](const crow::request& req) {
+		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
+        
         board = createShuffledBoard();
         moveCount = 0;
 
@@ -236,6 +241,7 @@ int main(){
     });
 
     CROW_ROUTE(app, "/api/startgame")([]() {
+		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
         board = createShuffledBoard();
         moveCount = 0;
 
@@ -250,6 +256,7 @@ int main(){
     // MAKE MOVE
     CROW_ROUTE(app, "/api/move").methods("PATCH"_method)
     ([](const crow::request& req){
+		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
         auto body = crow::json::load(req.body);
         if (!body || !body.has("pos")) {
             return crow::response(400, "Missing pos");
@@ -279,6 +286,7 @@ int main(){
         
     CROW_ROUTE(app, "/api/undo").methods("PUT"_method)
         ([](const crow::request& req) {
+		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when modifying game state
         bool undone = undoMove(board);
         if (undone && moveCount > 0) moveCount--;
 
@@ -334,14 +342,17 @@ int main(){
 
     CROW_ROUTE(app, "/api/hint").methods("GET"_method)
         ([](const crow::request& req) {
-        //req.add_header("Access-Control-Allow-Methods", "PATCH, OPTIONS");
-        //req.add_header("Access-Control-Allow-Headers", "Content-Type");
-        vector<int> moves = solvePuzzle(board);
-
+		lock_guard<mutex> lock(boardMutex); // Ensure thread safety when accessing game state
         crow::response res(200);
         res.set_header("Content-Type", "application/json");
-
         crow::json::wvalue out;
+
+        if (board.empty()) {
+            board = createShuffledBoard();
+            moveCount = 0;
+        }
+
+        vector<int> moves = solvePuzzle(board);
         if (moves.empty()) {
             out["message"] = "No solution found";
         }

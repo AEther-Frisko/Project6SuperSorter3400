@@ -212,6 +212,10 @@ hintBtn.addEventListener("click", async () => {
     const res = await fetch("/api/hint", { method: "GET" });
     const data = await res.json();
     if (data.hint !== undefined) {
+        // re-fetch state in case a new game was just started
+        //const stateRes = await fetch("/api/startgame");
+        //state = await stateRes.json();
+        render();
         document.querySelectorAll(".cell").forEach(c => c.classList.remove("hint"));
         gridEl.children[data.hint].classList.add("hint");
     }

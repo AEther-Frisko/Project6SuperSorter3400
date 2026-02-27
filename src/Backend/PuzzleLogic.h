@@ -14,7 +14,7 @@
 
 using namespace std;
 
-int lastmoved = -1; // Track last moved tile for undo functionality
+
 stack<int> moveHistory; // Stack to track move history for undo functionality
 // Check if puzzle is in solved state
 bool isSolved(const vector<int>& board) {
@@ -47,10 +47,13 @@ vector<int> createShuffledBoard() {
     vector<int> board = { 1, 2, 3, 4, 5, 6, 7, 8, 0 };
     random_device rd;
     mt19937 gen(rd());
+    //moveHistory.empty(); // Clear move history when creating a new board 
+	moveHistory = stack<int>(); // Reset the move history stack
 
     do {
         shuffle(board.begin(), board.end(), gen);
     } while (!isSolvable(board));
+    
 
     return board;
 }
