@@ -130,7 +130,7 @@ vector<LeaderboardEntry> getLeaderboard() {
 
     SQLINTEGER id, moves;
     SQLCHAR time[9];
-    SQLCHAR name[50];
+    SQLCHAR name[4];
 
     while (SQLFetch(hStmt) == SQL_SUCCESS) {
         SQLGetData(hStmt, 1, SQL_C_SLONG, &id, 0, NULL);
@@ -377,7 +377,7 @@ int main(){
                 return crow::response(500, "STMT alloc failed: " + odbc_error(SQL_HANDLE_DBC, hDbc));
 
             std::string sql =
-                "INSERT INTO dbo.PlayerRanks (Rank, Name, NumOfMoves, Time) VALUES (0, N'" +
+                "INSERT INTO dbo.PlayerRanks (Name, NumOfMoves, Time) VALUES ('" +
                 clean + "', " + std::to_string(moves) + ", '" + timeBuf + "')";
 
             ret = SQLExecDirectA(hStmt, (SQLCHAR*)sql.c_str(), SQL_NTS);
