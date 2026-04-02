@@ -1,6 +1,26 @@
-from locust import HttpUser, task, between
+from locust import HttpUser, task, between, LoadTestShape
 import random
 import json
+
+
+class StepLoadShape(LoadTestShape):
+    
+    step_time = 120        # seconds at each step (2 minutes)
+    step_load = 10         # users to add per step
+    spawn_rate = 10        # how fast to add users at each step
+    time_limit = 5400      # total test duration in seconds (100 min)
+
+    def tick(self):
+        run_time = self.get_run_time()
+        
+        if run_time > self.time_limit:
+            return None  # stop the test
+        
+        current_step = run_time // self.step_time
+        target_users = min(current_step * self.step_load, 100)
+        
+        return (target_users, self.spawn_rate)
+
 
 class SuperSorter3400User(HttpUser):
     wait_time = between(1, 3)  # SRS assumes ~1 update/second per user
