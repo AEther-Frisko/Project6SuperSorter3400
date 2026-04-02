@@ -1,10 +1,13 @@
 # ============================================================
 # packages
 # ============================================================
-# install.packages("ggplot2")
-library(ggplot2)
+#install.packages("ggplot2")
+#install.packages("tidyr")
 
-setwd("C:/Users/lexie/OneDrive/Documents/School/Classes/Software Quality IV/Project/Project6SuperSorter3400")
+library(ggplot2)
+library(tidyr)
+
+#setwd("C:/Users/lexie/OneDrive/Documents/School/Classes/Software Quality IV/Project/Project6SuperSorter3400")
 
 # ============================================================
 # load data
