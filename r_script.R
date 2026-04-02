@@ -1,128 +1,117 @@
-
-#only need to run install.packages() once ever, then comment it out
-#install.packages("ggplot2")
+# ============================================================
+# packages
+# ============================================================
+# install.packages("ggplot2")
 library(ggplot2)
 
-#setwd("C:/Users/lexie/OneDrive/Documents/School/Classes/Software Quality IV/Project/Project6SuperSorter3400")
+setwd("C:/Users/lexie/OneDrive/Documents/School/Classes/Software Quality IV/Project/Project6SuperSorter3400")
 
+# ============================================================
 # load data
-locust <- read.csv("locust_requests.csv")
+# ============================================================
+# test 1 - gradual ramp up
+locust_1 <- read.csv("1_locust_requests.csv")
+stats_1_full <- read.csv("1_stats.csv")
 
-stats_full <- read.csv("stats.csv")
+# test 2 - step ramp up
+locust_2 <- read.csv("2_locust_requests.csv")
+stats_2_full <- read.csv("2_stats.csv")
+history_2 <- read.csv("2_locust_stats_history.csv")
 
-head(locust)
-head(stats_full)
+# ============================================================
+# data prep - test 1
+# ============================================================
+locust_1_clean <- locust_1[locust_1$Name != "",]
 
-# remove the aggregated row
-locust_clean <- locust[locust$Name != "",]
+stats_1_full$CPU_clean <- as.numeric(gsub("%", "", stats_1_full$CPU))
+stats_1_full$Memory_clean <- as.numeric(gsub("MiB.*", "", stats_1_full$Memory))
+stats_1_full$Time_parsed <- as.POSIXct(stats_1_full$Time, format="%H:%M:%S")
 
-# response times per endpoint
-response_times <- data.frame(
-  Endpoint = locust_clean$Name,
-  Average_ms = locust_clean$Average.Response.Time,
-  Median_ms = locust_clean$Median.Response.Time,
-  Failures = locust_clean$Failure.Count,
-  Requests_per_s = locust_clean$Requests.s
+stats_1 <- stats_1_full[stats_1_full$Time_parsed >= as.POSIXct("19:13:00", format="%H:%M:%S"),]
+stats_1$Time_parsed <- as.POSIXct(stats_1$Time, format="%H:%M:%S")
+stats_1$Elapsed_min <- as.numeric(difftime(stats_1$Time_parsed, stats_1$Time_parsed[1], units="mins"))
+stats_1$Interval <- floor(stats_1$Elapsed_min / 0.25) * 0.25
+
+# ============================================================
+# data prep - test 2
+# ============================================================
+locust_2_clean <- locust_2[locust_2$Name != "",]
+
+stats_2_full$CPU_clean <- as.numeric(gsub("%", "", stats_2_full$CPU))
+stats_2_full$Memory_clean <- as.numeric(gsub("MiB.*", "", stats_2_full$Memory))
+stats_2_full$Time_parsed <- as.POSIXct(stats_2_full$Time, format="%H:%M:%S")
+
+stats_2 <- stats_2_full[stats_2_full$Time_parsed >= as.POSIXct("01:15:00", format="%H:%M:%S"),]
+stats_2$Time_parsed <- as.POSIXct(stats_2$Time, format="%H:%M:%S")
+stats_2$Elapsed_min <- as.numeric(difftime(stats_2$Time_parsed, stats_2$Time_parsed[1], units="mins"))
+stats_2$Interval <- floor(stats_2$Elapsed_min / 0.25) * 0.25
+
+history_2$Time_parsed <- as.POSIXct(history_2$Timestamp, origin="1970-01-01", tz="UTC")
+history_2$Elapsed_min <- as.numeric(difftime(history_2$Time_parsed, history_2$Time_parsed[1], units="mins"))
+history_2_active <- history_2[history_2$User.Count > 0,]
+history_2_active$Elapsed_min <- as.numeric(difftime(history_2_active$Time_parsed, history_2_active$Time_parsed[1], units="mins"))
+history_2_active$Interval <- floor(history_2_active$Elapsed_min / 5) * 5
+
+# ============================================================
+# PRF-0040: 100 concurrent users - combined PASS
+# ============================================================
+ramp_combined <- data.frame(
+  Elapsed = c(elapsed_1, elapsed_2),
+  Users = c(users_1, users_2),
+  Test = c(rep("Test 1 - Gradual", length(elapsed_1)),
+           rep("Test 2 - Step", length(elapsed_2)))
 )
 
-print(response_times)
-
-# remove the aggregated row for graphing
-locust_graph <- locust_clean[locust_clean$Name != "Aggregated", ]
-
-# clean up endpoint names
-locust_graph$Label <- c("Home", "Hint", "Leaderboard API", 
-                        "Move", "New Game", "Start Game",
-                        "Submit", "Undo", "Game Page", 
-                        "Leaderboard Page")
-
-# bar chart of average response times
-ggplot(locust_graph, aes(x=Label, y=Average.Response.Time, fill=Label)) + 
-  geom_bar(stat="identity") + 
-  #geom_hline(yintercept=200, color="red", linetype="dashed", linewidth=1) + 
-  labs(title="Average Response Time by Endpoint",
-       x="Endpoint", y="Response Time (ms)") + 
-  theme(axis.text.x = element_text(angle=45, hjust=1)) + 
-  guides(fill="none")
-
-# clean CPU column - remove % sign and convert to numeric
-stats_full$CPU_clean <- as.numeric(gsub("%", "", stats_full$CPU))
-
-stats_full$Time_parsed <- as.POSIXct(stats_full$Time, format="%H:%M:%S")
-stats <- stats_full[stats_full$Time_parsed >= as.POSIXct("19:13:00", format="%H:%M:%S"), ]
-
-
-# convert time to elapsed minutes
-stats$Time_parsed <- as.POSIXct(stats$Time, format="%H:%M:%S")
-stats$Elapsed_min <- as.numeric(difftime(stats$Time_parsed, stats$Time_parsed[1], units="mins"))
-
-# plot CPU over time
-ggplot(stats, aes(x=Elapsed_min, y=CPU_clean)) +
-  geom_line(color="steelblue") +
-  geom_hline(yintercept=80, color="red", linetype="dashed", linewidth=1) +
-  labs(title="CPU Utilization During Load Test",
-       x="Elapsed Time (minutes)", y="CPU (%)") +
-  theme_minimal()
-
-# create 15 second intervals
-stats$Interval <- floor(stats$Elapsed_min / 0.25) * 0.25
-
-# average CPU per 15 second interval
-stats_15s <- aggregate(CPU_clean ~ Interval, data=stats, FUN=mean)
-
-# plot
-ggplot(stats_15s, aes(x=Interval, y=CPU_clean)) +
-  geom_line(color="steelblue", linewidth=0.85) +
-  #geom_point(color="steelblue", size=2) +
-  geom_hline(yintercept=80, color="red", linetype="dashed", linewidth=1) +
-  labs(title="Average CPU Utilization per 15 Seconds",
-       x="Elapsed Time (minutes)", y="CPU (%)") +
-  theme_minimal()
-
-# extract just the used memory value and convert to numeric
-stats$Memory_clean <- as.numeric(gsub("MiB.*", "", stats$Memory))
-
-# create 15 second intervals
-stats$Interval <- floor(stats$Elapsed_min / 0.25) * 0.25
-
-# average memory per 15 second interval
-stats_mem <- aggregate(Memory_clean ~ Interval, data=stats, FUN=mean)
-
-# plot
-ggplot(stats_mem, aes(x=Interval, y=Memory_clean)) +
-  geom_line(color="steelblue", linewidth=0.85) +
-  labs(title="Memory Usage During Load Test",
-       x="Elapsed Time (minutes)", y="Memory (MiB)") +
-  theme_minimal()
-
-# extract user count over time from locust report data
-# the data shows users ramping from 1 to 100 starting at 23:13:55
-
-# create the ramp up data from the report
-locust_time <- as.POSIXct(c(
-  "2026-04-01 23:13:55", "2026-04-01 23:33:51"
-), format="%Y-%m-%d %H:%M:%S")
-
-# calculate elapsed minutes for each data point in the html
-# start time was 23:13:55, hit 100 users at 23:33:51 (about 20 minutes)
-
-# build user count over time from the report data
-report_start <- as.POSIXct("2026-04-01 23:13:55", format="%Y-%m-%d %H:%M:%S")
-
-# key timestamps from the data
-user_times <- c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 80)
-user_counts <- c(1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 100)
-
-# use the actual data - ramp from 0 to 100 over ~20 minutes then hold
-elapsed <- seq(0, 80, by=0.083)
-users <- pmin(floor(elapsed / 20 * 100), 100)
-users[1] <- 0
-ramp_data <- data.frame(Elapsed=elapsed, Users=users)
-
-# plot
-ggplot(ramp_data, aes(x=Elapsed, y=Users)) +
-  geom_line(color="steelblue", linewidth=0.85) +
-  geom_hline(yintercept=100, color="red", linetype="dashed", linewidth=1) +
+ggplot(ramp_combined, aes(x=Elapsed, y=Users, color=Test)) +
+  geom_line(linewidth=0.85) +
+  geom_hline(yintercept=100, color="black", linetype="dashed", linewidth=1) +
+  scale_color_manual(values=c("Test 1 - Gradual"="steelblue", "Test 2 - Step"="darkorange")) +
   labs(title="Simulated Users Over Time",
-       x="Elapsed Time (minutes)", y="Number of Users") +
+       x="Elapsed Time (minutes)", y="Number of Users", color="Test") +
+  theme_minimal()
+
+# ============================================================
+# PRF-0050: CPU utilization <= 80% - combined PASS
+# ============================================================
+stats_1_cpu$Test <- "Test 1 - Gradual"
+stats_2_cpu$Test <- "Test 2 - Step"
+cpu_combined <- rbind(stats_1_cpu, stats_2_cpu)
+
+ggplot(cpu_combined, aes(x=Interval, y=CPU_clean, color=Test)) +
+  geom_line(linewidth=0.85) +
+  geom_hline(yintercept=80, color="black", linetype="dashed", linewidth=1) +
+  scale_color_manual(values=c("Test 1 - Gradual"="steelblue", "Test 2 - Step"="darkorange")) +
+  labs(title="CPU Utilization During Load Test",
+       x="Elapsed Time (minutes)", y="CPU (%)", color="Test") +
+  theme_minimal()
+
+# ============================================================
+# memory usage - combined PASS
+# ============================================================
+stats_1_mem$Test <- "Test 1 - Gradual"
+stats_2_mem$Test <- "Test 2 - Step"
+mem_combined <- rbind(stats_1_mem, stats_2_mem)
+
+ggplot(mem_combined, aes(x=Interval, y=Memory_clean, color=Test)) +
+  geom_line(linewidth=0.85) +
+  ylim(0, 150) +
+  scale_color_manual(values=c("Test 1 - Gradual"="steelblue", "Test 2 - Step"="darkorange")) +
+  labs(title="Memory Usage During Load Test",
+       x="Elapsed Time (minutes)", y="Memory (MiB)", color="Test") +
+  theme_minimal()
+
+# ============================================================
+# PRF-0060: throughput >= 50 req/s - test 2 FAIL
+# ============================================================
+throughput_5min <- aggregate(Requests.s ~ Interval, data=history_2_active, FUN=mean)
+
+passing_tp <- sum(throughput_5min$Requests.s >= 50)
+total_tp <- nrow(throughput_5min)
+cat("PRF-0060 Test 2:", passing_tp, "out of", total_tp, "intervals meet >= 50 req/s\n")
+
+ggplot(throughput_5min, aes(x=Interval, y=Requests.s)) +
+  geom_line(color="steelblue", linewidth=1.5) +
+  geom_hline(yintercept=50, color="red", linetype="dashed", linewidth=1) +
+  labs(title="Test 2: Average Throughput per 5 Minute Interval",
+       x="Elapsed Time (minutes)", y="Requests per Second") +
   theme_minimal()
