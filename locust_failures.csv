@@ -1,0 +1,10 @@
+Method,Name,Error,Occurrences
+GET,/game,RemoteDisconnected('Remote end closed connection without response'),258
+PATCH,/api/move,RemoteDisconnected('Remote end closed connection without response'),2403
+GET,/,RemoteDisconnected('Remote end closed connection without response'),497
+DELETE,/api/new,RemoteDisconnected('Remote end closed connection without response'),445
+GET,/api/hint,RemoteDisconnected('Remote end closed connection without response'),452
+PUT,/api/undo,RemoteDisconnected('Remote end closed connection without response'),730
+GET,/api/leaderboard,RemoteDisconnected('Remote end closed connection without response'),720
+POST,/api/submit,RemoteDisconnected('Remote end closed connection without response'),215
+GET,/leaderboard,RemoteDisconnected('Remote end closed connection without response'),498
